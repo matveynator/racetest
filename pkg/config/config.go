@@ -29,7 +29,6 @@ func ParseFlags() (config Settings)  {
 	config.APP_NAME = "racetest"
 	flagVersion := flag.Bool("version", false, "Output version information")
 	flag.StringVar(&config.PROXY_ADDRESS, "target", "127.0.0.1:4000", "Provide IP address and port where to send data (where chicha timekeeper is running).")
-	flag.StringVar(&config.TIME_ZONE, "timezone", "UTC", "Set race timezone. Example: Europe/Paris, Africa/Dakar, UTC, https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")
 	flag.IntVar(&config.RIDERS, "riders", 10, "Set ammount of riders (sportsmen) for the race.")
 	flag.IntVar(&config.RESULTS, "results", 10, "Set ammount of results each competitor sends to timekeeper.")
 	flag.IntVar(&config.LAPS, "laps", 5, "Set ammount of laps each race holds.")

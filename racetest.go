@@ -14,6 +14,7 @@ func main() {
 	settings := Config.ParseFlags()
 	go MyLog.ErrorLogWorker()
   go Proxy.Run(settings)
+
 	go Racetest.Run(settings)
 
 for {

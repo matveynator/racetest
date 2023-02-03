@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"math/rand"
 	"racetest/pkg/config"
+	"racetest/pkg/data"
+	"racetest/pkg/proxy"
 	"github.com/goombaio/namegenerator"
 )
+
+var rawData Data.RawData
 
 func Run(config Config.Settings) () {
 
@@ -14,7 +18,6 @@ func Run(config Config.Settings) () {
 	var totalSleeptime int = 0
 
 	averageSleepSecondsInt  := int(config.MINIMAL_LAP_TIME_DURATION.Seconds())/config.RIDERS
-	fmt.Println("averageSleepSecondsInt", averageSleepSecondsInt)
 
 	//get rider names:
 	competitors := riders(config)
@@ -41,8 +44,15 @@ func Run(config Config.Settings) () {
 						for result := 1; result <= config.RESULTS; result++ {
 							//not each result registered by antenna (60%):
 							if RandBool60() == true {
-								//print result:
-								fmt.Println(name)
+							
+								rand.Seed(time.Now().UnixNano())
+
+								rawData.TagId = name
+								rawData.DiscoveryUnixTime = time.Now().UnixNano()/int64(time.Millisecond)
+								rawData.Antenna = uint(rand.Intn(4))
+								
+								Proxy.ProxyTask <- rawData
+								fmt.Printf("%s,%d,%d\n", rawData.TagId, rawData.DiscoveryUnixTime, rawData.Antenna )
 							}
 						}
 
