@@ -15,6 +15,10 @@ var proxyWorkersMaxCount int = 1
 var ProxyTask chan Data.RawData
 var respawnLock chan int
 
+
+func init() {
+	ProxyTask = make(chan Data.RawData, 1)
+}
 func Run(config Config.Settings) {
 
 	if config.PROXY_ADDRESS != "" {
