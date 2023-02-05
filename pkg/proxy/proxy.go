@@ -15,20 +15,18 @@ var proxyWorkersMaxCount int = 1
 var ProxyTask chan Data.RawData
 var respawnLock chan int
 
-
 func init() {
-	ProxyTask = make(chan Data.RawData, 1)
+	//initialise channel with tasks:
+	ProxyTask = make(chan Data.RawData)
+
+	//initialize unblocking channel to guard respawn tasks
+	respawnLock = make(chan int, proxyWorkersMaxCount)
 }
 func Run(config Config.Settings) {
 
 	if config.PROXY_ADDRESS != "" {
 
 		log.Println("connecting to 0", config.PROXY_ADDRESS)
-		//initialise channel with tasks:
-		ProxyTask = make(chan Data.RawData)
-
-		//initialize unblocking channel to guard respawn tasks
-		respawnLock = make(chan int, proxyWorkersMaxCount)
 
 		go func() {
 			for {
@@ -42,10 +40,6 @@ func Run(config Config.Settings) {
 	}
 }
 
-func CreateNewProxyTask(taskData Data.RawData) {
-	//log.Println("new proxy task:", taskData.TagId)
-	ProxyTask <- taskData
-}
 
 //close connection on programm exit
 func deferCleanup(connection net.Conn) {
@@ -61,9 +55,7 @@ func deferCleanup(connection net.Conn) {
 func proxyWorkerRun(workerId int, config Config.Settings) {
 
 	connection, err := net.DialTimeout("tcp", config.PROXY_ADDRESS, 15 * time.Second)
-
 	defer deferCleanup(connection)
-
 	if err != nil  {
 		MyLog.Printonce(fmt.Sprintf("Proxy destination %s unreachable. Error: %s",  config.PROXY_ADDRESS, err))
 		return
@@ -71,10 +63,8 @@ func proxyWorkerRun(workerId int, config Config.Settings) {
 	} else {
 		MyLog.Println(fmt.Sprintf("Proxy worker #%d connected to destination %s", workerId, config.PROXY_ADDRESS))
 	}
-
 	//initialise connection error channel
-	connectionErrorChannel := make(chan error)
-
+	connectionErrorChannel := make(chan error, 1)
 	go func() {
 		buffer := make([]byte, 1024)
 		for {
@@ -93,7 +83,6 @@ func proxyWorkerRun(workerId int, config Config.Settings) {
 		select {
 			//в случае если есть задание в канале ProxyTask
 		case currentProxyTask := <- ProxyTask :
-			//fmt.Println("proxyWorker", workerId, "processing new job...")
 			_, networkSendingError := fmt.Fprintf(connection, "%s, %d, %d\n", currentProxyTask.TagId, currentProxyTask.DiscoveryUnixTime, currentProxyTask.Antenna)
 			if err != nil {
 				//в случае потери связи во время отправки мы возвращаем задачу обратно в канал ProxyTask
@@ -101,8 +90,6 @@ func proxyWorkerRun(workerId int, config Config.Settings) {
 				log.Printf("Proxy worker %d exited due to sending error: %s\n", workerId, networkSendingError)
 				//и завершаем работу гоурутины
 				return
-			} else {
-				//fmt.Println("proxyWorker", workerId, "finished job.")
 			}
 		case networkError := <-connectionErrorChannel :
 			//обнаружена сетевая ошибка - завершаем гоурутину

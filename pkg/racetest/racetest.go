@@ -7,7 +7,6 @@ import (
 	"racetest/pkg/config"
 	"racetest/pkg/data"
 	"racetest/pkg/proxy"
-	"github.com/goombaio/namegenerator"
 )
 
 var rawData Data.RawData
@@ -16,15 +15,20 @@ func Run(config Config.Settings) () {
 
 	var sleeptime int = 0 
 	var totalSleeptime int = 0
+	var competitors []string
 
 	averageSleepSecondsInt  := int(config.MINIMAL_LAP_TIME_DURATION.Seconds())/config.RIDERS
 
-	//get rider names:
-	competitors := riders(config)
+	raceId := 1
 
-	raceId := 0
+	config.RANDOM=true
 
 	for {
+
+		//get new rider list for each race:
+		competitors = riders(config)
+		fmt.Printf("created list with %d riders for race #%d \n", len(competitors), raceId)
+
 		for lap := 0; lap <= config.LAPS; lap++ {
 
 			if config.RANDOM {
@@ -32,6 +36,8 @@ func Run(config Config.Settings) () {
 				rand.Seed(time.Now().UnixNano())
 				rand.Shuffle(len(competitors), func(i, j int) { competitors[i], competitors[j] = competitors[j], competitors[i] })
 			}
+	
+			fmt.Printf("shuffled list with %d riders for race #%d \n", len(competitors), raceId)
 
 			//zero total sleep time:
 			totalSleeptime = 0
@@ -39,25 +45,28 @@ func Run(config Config.Settings) () {
 			for index, name := range competitors {
 
 				if config.RANDOM {
-					//not each competitor finishes each lap (75%):
-					if RandBool75() == true {
+					fmt.Printf("rider %s and raceid %d \n", name, raceId)
+					//not each competitor finishes each lap (90%):
+					if RandBool90() {
 						for result := 1; result <= config.RESULTS; result++ {
 							//not each result registered by antenna (60%):
-							if RandBool60() == true {
-							
-								rand.Seed(time.Now().UnixNano())
-
+							fmt.Printf("rider %s and result %d \n", name, result)
+							if RandBool60() {
+								fmt.Printf("rider %s and random result %d \n", name, result)
 								rawData.TagId = name
 								rawData.DiscoveryUnixTime = time.Now().UnixNano()/int64(time.Millisecond)
-								rawData.Antenna = uint(rand.Intn(4))
-								
+
+								rand.Seed(time.Now().UnixNano())
+								rawData.Antenna = uint(rand.Intn(3))
+
 								Proxy.ProxyTask <- rawData
+
 								fmt.Printf("%s,%d,%d\n", rawData.TagId, rawData.DiscoveryUnixTime, rawData.Antenna )
 							}
 						}
 
 						//if not last rider in the lap: 
-						if (index + 1) != len(competitors) {
+						if index != (len(competitors)-1) {
 
 							//get random sleeptime = 1 second:
 							rand.Seed(time.Now().UnixNano())
@@ -71,7 +80,7 @@ func Run(config Config.Settings) () {
 							//sleep:
 							time.Sleep(time.Duration(sleeptime) * time.Second)
 						} else {
-							//if not the last lap:
+							//if last rider in the lap and not the last lap:
 							if lap != config.LAPS {
 								//if last rider in the lap:
 								//calculate time left for the lap (to sleep after all riders checked in):
@@ -79,20 +88,14 @@ func Run(config Config.Settings) () {
 									totalSleeptimeDuration := time.Duration(totalSleeptime) * time.Second
 									nextLapSleepTime := config.MINIMAL_LAP_TIME_DURATION.Seconds() - totalSleeptimeDuration.Seconds() 
 
-									fmt.Printf("Lap #%d finished, next lap in %d seconds, total laps=%d.\n", lap, int(nextLapSleepTime), config.LAPS)
+									fmt.Printf("Lap - #%d finished, next lap in %d seconds, total laps=%d.\n", lap, int(nextLapSleepTime), config.LAPS)
 
 									time.Sleep(time.Duration(int(nextLapSleepTime)) * time.Second)
 								} else {
 
-									fmt.Printf("Lap #%d finished, next lap in %d seconds, total laps=%d.\n", lap, 0, config.LAPS)
+									fmt.Printf("Lap -- #%d finished, next lap in %d seconds, total laps=%d.\n", lap, 0, config.LAPS)
 
 								}
-							} else {
-								//if last lap:
-								fmt.Printf("Race #%d finished, next race in %d seconds.\n", raceId, int(config.RACE_TIMEOUT_DURATION.Seconds()))
-								time.Sleep(config.RACE_TIMEOUT_DURATION)
-								//increment raceId
-								raceId++
 							}
 						}
 					}
@@ -101,11 +104,19 @@ func Run(config Config.Settings) () {
 
 					for result := 1; result <= config.RESULTS; result++ {
 						//print result:
-						fmt.Println(name)
+
+						rawData.TagId = name
+						rawData.DiscoveryUnixTime = time.Now().UnixNano()/int64(time.Millisecond)
+
+						rand.Seed(time.Now().UnixNano())
+						rawData.Antenna = uint(rand.Intn(3))
+						Proxy.ProxyTask <- rawData
+						fmt.Printf("%s,%d,%d\n", rawData.TagId, rawData.DiscoveryUnixTime, rawData.Antenna )
+
 					}
 
 					//if not last rider in the lap:
-					if (index + 1) != len(competitors) {
+					if index != (len(competitors)-1) {
 
 						//get random sleeptime = 1 second:
 						rand.Seed(time.Now().UnixNano())
@@ -119,7 +130,7 @@ func Run(config Config.Settings) () {
 						//sleep:
 						time.Sleep(time.Duration(sleeptime) * time.Second)
 					} else {
-						//if not the last lap:
+						//if last rider in the lap and not the last lap:
 						if lap != config.LAPS {
 							//if last rider in the lap:
 							//calculate time left for the lap (to sleep after all riders checked in):
@@ -127,40 +138,84 @@ func Run(config Config.Settings) () {
 								totalSleeptimeDuration := time.Duration(totalSleeptime) * time.Second
 								nextLapSleepTime := config.MINIMAL_LAP_TIME_DURATION.Seconds() - totalSleeptimeDuration.Seconds()
 
-								fmt.Printf("Lap #%d finished, next lap in %d seconds, total laps=%d.\n", lap, int(nextLapSleepTime), config.LAPS)
+								fmt.Printf("Lap --- #%d finished, next lap in %d seconds, total laps=%d.\n", lap, int(nextLapSleepTime), config.LAPS)
 
 								time.Sleep(time.Duration(int(nextLapSleepTime)) * time.Second)
 							} else {
 
-								fmt.Printf("Lap #%d finished, next lap in %d seconds, total laps=%d.\n", lap, 0, config.LAPS)
+								fmt.Printf("Lap ---- #%d finished, next lap in %d seconds, total laps=%d.\n", lap, 0, config.LAPS)
 
 							}
-						} else {
-							//if last lap:
-							fmt.Printf("Race #%d finished, next race in %d seconds.\n", raceId, int(config.RACE_TIMEOUT_DURATION.Seconds()))
-							time.Sleep(config.RACE_TIMEOUT_DURATION)
-							//increment raceId
-							raceId++
 						}
 					}
 				}
-			/////
 			}
+		}
+
+		//if last lap:
+		fmt.Printf("Race #%d finished, next race in %d seconds.\n", raceId, int(config.RACE_TIMEOUT_DURATION.Seconds()))
+		time.Sleep(config.RACE_TIMEOUT_DURATION)
+		//increment raceId
+		raceId++
+	}
+
+
+
+
+
+}
+
+func GetRandomDriver() string {
+
+	drivers := []string{
+		"VladimirChagin",
+		"HansStacey",
+		"GerardDeRooy",
+		"EduardNikolaev",
+		"AiratMardeev",
+		"DmitrySotnikov",
+		"AntonShibalov",
+		"KarelLoprais",
+		"JanDeRooy",
+		"TobyPrice",
+		"RickyBrabec",
+		"CyrilDespres",
+		"KevinBenavides",
+		"NailHubbatulin",
+		"ToniBou",
+		"ValentinoRossi",
+		"AirtonSenna",
+		"MichaelSchumacher",
+		"NikkiLauda",
+		"LewisHamilton",
+		"NigelMansell",
+		"AlainProst",
+		"CarlosSainz",
+		"BillElliott",
+		"MarcMarquez",
+		"AdamRaga",
+		"ChuckNorris",
+	}
+	rand.Seed(time.Now().UnixNano())
+	return drivers[rand.Intn(len(drivers))]
+}
+
+
+func riders(config Config.Settings) (riders []string) {
+	for {
+		name := GetRandomDriver()
+		if !contains(riders, name) {
+			riders = append(riders, name)
+		}
+		if len(riders) == config.RIDERS {
+			return
 		}
 	}
 }
 
-func riders(config Config.Settings) (riders []string) {
-	for rider:=1; rider <= config.RIDERS; rider++ {
-		name := namegenerator.NewNameGenerator(time.Now().UTC().UnixNano()).Generate()
-		riders = append(riders, name)
-	}
-	return
-}
-
-func RandBool75() bool {
+func RandBool90() bool {
 	rand.Seed(time.Now().UnixNano())
-	return rand.Intn(4) != 1
+	return rand.Intn(9) != 1
 }
 
 func RandBool60() bool {
@@ -168,3 +223,12 @@ func RandBool60() bool {
 	return rand.Intn(3) != 1
 }
 
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
+}
