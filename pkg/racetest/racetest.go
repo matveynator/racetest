@@ -21,13 +21,14 @@ func Run(config Config.Settings) () {
 
 	raceId := 1
 
-	config.RANDOM=true
+	config.RANDOM=false
 
 	for {
+		//for each new race:
 
 		//get new rider list for each race:
 		competitors = riders(config)
-		fmt.Printf("created list with %d riders for race #%d \n", len(competitors), raceId)
+		//fmt.Printf("created list with %d riders for race #%d \n", len(competitors), raceId)
 
 		for lap := 0; lap <= config.LAPS; lap++ {
 
@@ -36,8 +37,8 @@ func Run(config Config.Settings) () {
 				rand.Seed(time.Now().UnixNano())
 				rand.Shuffle(len(competitors), func(i, j int) { competitors[i], competitors[j] = competitors[j], competitors[i] })
 			}
-	
-			fmt.Printf("shuffled list with %d riders for race #%d \n", len(competitors), raceId)
+
+			//fmt.Printf("shuffled list with %d riders for race #%d \n", len(competitors), raceId)
 
 			//zero total sleep time:
 			totalSleeptime = 0
@@ -45,14 +46,15 @@ func Run(config Config.Settings) () {
 			for index, name := range competitors {
 
 				if config.RANDOM {
-					fmt.Printf("rider %s and raceid %d \n", name, raceId)
+					//fmt.Printf("rider %s and raceid %d \n", name, raceId)
 					//not each competitor finishes each lap (90%):
 					if RandBool90() {
 						for result := 1; result <= config.RESULTS; result++ {
 							//not each result registered by antenna (60%):
-							fmt.Printf("rider %s and result %d \n", name, result)
+							//fmt.Printf("rider %s and result %d \n", name, result)
 							if RandBool60() {
-								fmt.Printf("rider %s and random result %d \n", name, result)
+								//fmt.Printf("rider %s and random result %d \n", name, result)
+								time.Sleep(time.Duration(20) * time.Millisecond)
 								rawData.TagId = name
 								rawData.DiscoveryUnixTime = time.Now().UnixNano()/int64(time.Millisecond)
 
@@ -104,7 +106,7 @@ func Run(config Config.Settings) () {
 
 					for result := 1; result <= config.RESULTS; result++ {
 						//print result:
-
+						time.Sleep(time.Duration(20) * time.Millisecond)
 						rawData.TagId = name
 						rawData.DiscoveryUnixTime = time.Now().UnixNano()/int64(time.Millisecond)
 
@@ -165,7 +167,7 @@ func Run(config Config.Settings) () {
 
 }
 
-func GetRandomDriver() string {
+func getRandomDriverName() string {
 
 	drivers := []string{
 		"VladimirChagin",
@@ -200,10 +202,20 @@ func GetRandomDriver() string {
 	return drivers[rand.Intn(len(drivers))]
 }
 
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
+}
 
 func riders(config Config.Settings) (riders []string) {
+	var name string
 	for {
-		name := GetRandomDriver()
+		name = getRandomDriverName()
 		if !contains(riders, name) {
 			riders = append(riders, name)
 		}
@@ -221,14 +233,4 @@ func RandBool90() bool {
 func RandBool60() bool {
 	rand.Seed(time.Now().UnixNano())
 	return rand.Intn(3) != 1
-}
-
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
 }
