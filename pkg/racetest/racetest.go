@@ -21,7 +21,9 @@ func Run(config Config.Settings) () {
 
 	raceId := 1
 
-	config.RANDOM=false
+	if config.RANDOM == true {
+		fmt.Println("Preparing tests with random data...")
+	}
 
 	for {
 		//for each new race:
