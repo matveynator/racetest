@@ -4,6 +4,7 @@ import (
 	"time"
 	"fmt"
 	"math/rand"
+	"strings"
 	"racetest/pkg/config"
 	"racetest/pkg/data"
 	"racetest/pkg/proxy"
@@ -18,6 +19,9 @@ func Run(config Config.Settings) () {
 	var competitors []string
 
 	averageSleepSecondsInt  := int(config.MINIMAL_LAP_TIME_DURATION.Seconds())/config.RIDERS
+	if averageSleepSecondsInt == 0 {
+		averageSleepSecondsInt = 1
+	}
 
 	raceId := 1
 
@@ -169,6 +173,61 @@ func Run(config Config.Settings) () {
 
 }
 
+func randomName() string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyz"
+	rand.Seed(time.Now().UnixNano())
+
+	nameLen := rand.Intn(6) + 5 // случайное число от 5 до 10 включительно
+	nameBytes := make([]byte, nameLen)
+
+	// первая буква заглавная
+	nameBytes[0] = letterBytes[rand.Intn(len(letterBytes)-10)] - 32
+
+	// остальные буквы строчные
+	for i := 1; i < nameLen; i++ {
+		nameBytes[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+
+	return string(nameBytes)
+}
+
+func generateRandomNameAndSurname() string {
+	rand.Seed(time.Now().UnixNano())
+
+	// Список гласных и согласных букв
+	vowels := "aeiouy"
+	consonants := "bcdfghjklmnpqrstvwxz"
+
+	// Генерируем имя
+	firstNameLen := rand.Intn(6) + 5 // Длина имени от 5 до 10 букв
+	firstName := ""
+	for i := 0; i < firstNameLen; i++ {
+		if i == 0 {
+			// Первая буква имени должна быть заглавной
+			firstName += strings.ToUpper(string(consonants[rand.Intn(len(consonants))]))
+		} else {
+			// Остальные буквы имени должны быть строчными
+			firstName += string(vowels[rand.Intn(len(vowels))])
+		}
+	}
+
+	// Генерируем фамилию
+	lastNameLen := rand.Intn(6) + 5 // Длина фамилии от 5 до 10 букв
+	lastName := ""
+	for i := 0; i < lastNameLen; i++ {
+		if i == 0 {
+			// Первая буква фамилии должна быть заглавной
+			lastName += strings.ToUpper(string(consonants[rand.Intn(len(consonants))]))
+		} else {
+			// Остальные буквы фамилии должны быть строчными
+			lastName += string(vowels[rand.Intn(len(vowels))])
+		}
+	}
+
+	// Соединяем имя и фамилию в одну строку
+	return firstName + lastName
+}
+
 func getRandomDriverName() string {
 
 	drivers := []string{
@@ -217,10 +276,13 @@ func contains(s []string, str string) bool {
 func riders(config Config.Settings) (riders []string) {
 	var name string
 	for {
-		name = getRandomDriverName()
+
+		name = generateRandomNameAndSurname()
 		if !contains(riders, name) {
 			riders = append(riders, name)
 		}
+		//fmt.Printf("len(riders)=%d\n", len(riders))
+
 		if len(riders) == config.RIDERS {
 			return
 		}
