@@ -86,7 +86,9 @@ func Run(config Config.Settings) () {
 							fmt.Printf("next rider in %d seconds...  index=%d, total riders=%d\n", sleeptime, index, len(competitors))
 
 							//sleep:
-							time.Sleep(time.Duration(sleeptime) * time.Second)
+							if sleeptime > 0 {
+								time.Sleep(time.Duration(sleeptime) * time.Second)
+							}
 						} else {
 							//if last rider in the lap and not the last lap:
 							if lap != config.LAPS {
@@ -173,24 +175,6 @@ func Run(config Config.Settings) () {
 
 }
 
-func randomName() string {
-	const letterBytes = "abcdefghijklmnopqrstuvwxyz"
-	rand.Seed(time.Now().UnixNano())
-
-	nameLen := rand.Intn(6) + 5 // случайное число от 5 до 10 включительно
-	nameBytes := make([]byte, nameLen)
-
-	// первая буква заглавная
-	nameBytes[0] = letterBytes[rand.Intn(len(letterBytes)-10)] - 32
-
-	// остальные буквы строчные
-	for i := 1; i < nameLen; i++ {
-		nameBytes[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-
-	return string(nameBytes)
-}
-
 func generateRandomNameAndSurname() string {
 	rand.Seed(time.Now().UnixNano())
 
@@ -199,7 +183,7 @@ func generateRandomNameAndSurname() string {
 	consonants := "bcdfghjklmnpqrstvwxz"
 
 	// Генерируем имя
-	firstNameLen := rand.Intn(6) + 5 // Длина имени от 5 до 10 букв
+	firstNameLen := rand.Intn(3) + 10 // Длина имени от 2 до 12 букв
 	firstName := ""
 	for i := 0; i < firstNameLen; i++ {
 		if i == 0 {
@@ -212,7 +196,7 @@ func generateRandomNameAndSurname() string {
 	}
 
 	// Генерируем фамилию
-	lastNameLen := rand.Intn(6) + 5 // Длина фамилии от 5 до 10 букв
+	lastNameLen := rand.Intn(3) + 12 // Длина фамилии от 2 до 12 букв
 	lastName := ""
 	for i := 0; i < lastNameLen; i++ {
 		if i == 0 {
@@ -275,15 +259,24 @@ func contains(s []string, str string) bool {
 
 func riders(config Config.Settings) (riders []string) {
 	var name string
+
+	// Sleep to calm down startup prompts:
+	time.Sleep(time.Duration(5) * time.Second)
+	fmt.Printf("Preparing %d random riders for the race: ", config.RIDERS)
+
 	for {
 
 		name = generateRandomNameAndSurname()
 		if !contains(riders, name) {
 			riders = append(riders, name)
 		}
-		//fmt.Printf("len(riders)=%d\n", len(riders))
-
+		for portionOfResults := 10; portionOfResults <= 100; portionOfResults=portionOfResults+10 {
+			if len(riders) == (config.RIDERS / 100) * portionOfResults {
+				fmt.Printf(" %d%%", portionOfResults)
+			}
+		}
 		if len(riders) == config.RIDERS {
+			fmt.Println(" DONE.")
 			return
 		}
 	}
