@@ -261,7 +261,8 @@ func riders(config Config.Settings) (riders []string) {
 	var name string
 
 	// Sleep to calm down startup prompts:
-	time.Sleep(time.Duration(5) * time.Second)
+	fmt.Println("Sleeping 3 seconds to calm down startup prompts...")
+	time.Sleep(time.Duration(3) * time.Second)
 	fmt.Printf("Preparing %d random riders for the race: ", config.RIDERS)
 
 	for {
